@@ -1,37 +1,27 @@
 import boto3
+from utils.logger import logger
 
 def scan_aws_waste():
-    # Conectando ao recurso EC2
     ec2 = boto3.resource('ec2')
     
-    print("\n" + "="*40)
-    print("🔍 CLOUD GUARDIAN: AWS WASTE SCAN")
-    print("="*40)
+    logger.info("Starting AWS Waste Scan...")
 
-    # 1. Volumes EBS Disponíveis (não anexados = desperdício total)
-    print("\nChecking for Unattached EBS Volumes...")
+    # Volumes
     volumes = ec2.volumes.filter(Filters=[{'Name': 'status', 'Values': ['available']}])
     vol_count = 0
     for vol in volumes:
-        print(f"⚠️  [WASTE] Volume ID: {vol.id} | Size: {vol.size}GB | Status: {vol.state}")
+        logger.warning(f"Unattached Volume Found: {vol.id} ({vol.size}GB)")
         vol_count += 1
     
     if vol_count == 0:
-        print("✅ No unattached volumes found.")
+        logger.info("No unattached volumes found.")
 
-    # 2. Instâncias Paradas (ocupando IP e Storage)
-    print("\nChecking for Stopped Instances...")
+    # Instâncias
     instances = ec2.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['stopped']}])
-    inst_count = 0
     for inst in instances:
-        print(f"ℹ️  [ADVICE] Instance ID: {inst.id} is STOPPED. Consider terminating if not needed.")
-        inst_count += 1
+        logger.info(f"Optimization Candidate: Stopped instance {inst.id}")
 
-    if inst_count == 0:
-        print("✅ No stopped instances to report.")
-    
-    print("\n" + "="*40)
-    print("SCAN COMPLETE")
+    logger.info("AWS Scan Complete.")
 
 if __name__ == "__main__":
     scan_aws_waste()
